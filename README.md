@@ -1,8 +1,10 @@
 # 🗿 tibl-cli
 
-[tibl](https://github.com/Uinelj/tibl) python client
+[tibl](https://github.com/Uinelj/tibl) python command line interface.
 
-![tibl-cli screencast](tibl-cli-demo.svg)
+<p align="center">
+    <img src="tibl-cli-demo.svg">
+</p>
 
 ## Features 
 
