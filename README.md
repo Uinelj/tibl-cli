@@ -2,6 +2,8 @@
 
 [tibl](https://github.com/Uinelj/tibl) python client
 
+![tibl-cli screencast](tibl-cli-demo.svg)
+
 ## Features 
 
 ```
