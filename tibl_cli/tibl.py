@@ -7,10 +7,12 @@ import subprocess
 import click
 import crayons as c
 import blindspin
+import git
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("tibl")
 
+repo = git.Repo(".")
 
 def echo_good(string, prefix="🗿"):
     """
@@ -243,13 +245,48 @@ def clean():
     pass
 
 
+@cli.command(help="link a github repository")
+@click.option(
+    "--url", prompt="GitHub URL:", help="Github URL of your repo"
+)
+def link(url):
+    with blindspin.spinner():
+        cmd_result = subprocess.run(
+            [
+                "git",
+                "remote",
+                "add",
+                "tibl",
+                url,
+            ],
+            stdout=subprocess.PIPE,
+        )
+    if cmd_result.returncode != 0:
+        echo_err("Error setting tibl remote")
+    else:
+        echo_good("tibl remote added")
+
+
+@cli.command(help="Push changes to a github repository")
+@click.option(
+    "--only-data", default=False, help="Only push data/ folder. Default is false"
+)
+def push(only_data):
+    with blindspin.spinner():
+        if only_data:
+            repo.index.add(["data/"])
+        else:
+            repo.index.add(["*"])
+
+        repo.index.commit("tibl: update content")
+        echo_good("Successfully pushed changes")
+
+@cli.command()
 def pull():
-    pass
-
-
-def push():
-    pass
-
+    if repo.is_dirty():
+        echo_err("Pulling in a dirty state is unsupported for now.")
+    else:
+        repo.remotes.tibl.pull()
 
 def update():
     pass
@@ -274,4 +311,5 @@ def serve(port):
 
 
 if __name__ == "__main__":
+
     cli()

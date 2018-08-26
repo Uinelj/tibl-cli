@@ -22,7 +22,7 @@ VERSION = None
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'click', 'crayons', 'blindspin',
+    'click', 'crayons', 'blindspin', 'gitpython'
 ]
 
 # What packages are optional?
