@@ -7,9 +7,15 @@ import subprocess
 import click
 import crayons as c
 import blindspin
+import git
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("tibl")
+
+try:
+    repo = git.Repo(".")
+except git.exc.InvalidGitRepositoryError as e:
+    pass
 
 
 def echo_good(string, prefix="🗿"):
@@ -78,6 +84,8 @@ def create(name):
             echo_err("Something went wrong when cloning tibl")
         else:
             echo_good("it's all gucci")
+            repo = git.Repo(name)
+            repo.git.remote("remove", "origin")
 
 
 @cli.command(help="Create a new post/page")
@@ -243,12 +251,56 @@ def clean():
     pass
 
 
+@cli.command(help="link a github repository")
+@click.option(
+    "--url", prompt="GitHub URL:", help="Github URL of your repo"
+)
+def link(url):
+    with blindspin.spinner():
+        # repo.git.remote("add", "tibl", url)
+        cmd_result = subprocess.run(
+            ["git", "remote", "add", "tibl", url],
+            stdout=subprocess.PIPE,
+        )
+    if cmd_result.returncode != 0:
+        echo_err("Error setting tibl remote")
+    else:
+        echo_good("tibl remote added")
+
+
+@cli.command(help="Push changes to a github repository")
+@click.option(
+    "--only-data",
+    default=False,
+    help="Only push data/ folder. Default is false",
+)
+def push(only_data):
+    with blindspin.spinner():
+        if only_data:
+            repo.index.add(["data/"])
+        else:
+            repo.index.add(["*"])
+
+        repo.index.commit("tibl: update content")
+        repo.git.push("tibl", "master")
+        # repo.remotes.tibl.push('')
+        echo_good("Successfully pushed changes")
+
+
+@cli.command(help="Pull changes from a github repository")
 def pull():
-    pass
+    if repo.is_dirty():
+        echo_err(
+            "Pulling in a dirty state is unsupported for now."
+        )
+    else:
+        repo.git.pull("--rebase", "tibl", "master")
+        echo_good("Got updoots")
 
 
-def push():
-    pass
+@cli.command(help="Print out current changes")
+def changes():
+    click.echo(repo.git.status())
 
 
 def update():
@@ -274,4 +326,5 @@ def serve(port):
 
 
 if __name__ == "__main__":
+
     cli()
