@@ -17,7 +17,7 @@ DESCRIPTION = 'tibl blog command line interface'
 URL = 'https://github.com/Uinelj.tibl'
 EMAIL = 'uuj@caramail.fr'
 AUTHOR = 'uj uj'
-REQUIRES_PYTHON = '>=3.6.6'
+REQUIRES_PYTHON = '>=3.6.1'
 VERSION = None
 
 # What packages are required for this module to be executed?
