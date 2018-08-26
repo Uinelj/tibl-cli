@@ -18,6 +18,10 @@ except git.exc.InvalidGitRepositoryError as e:
     pass
 
 
+def echo(string, prefix="🗿"):
+    click.echo(prefix + " " + string)
+
+
 def echo_good(string, prefix="🗿"):
     """
         Prints out in green.
@@ -40,7 +44,7 @@ def echo_warn(string, prefix="🗿"):
     click.echo(c.yellow(prefix + " " + string))
 
 
-def echo_err(string, prefix=""):
+def echo_err(string, prefix="🗿"):
     """
         Prints out in red.
 
@@ -83,9 +87,9 @@ def create(name):
         if clone_result.returncode != 0:
             echo_err("Something went wrong when cloning tibl")
         else:
+            click.echo("Removing .git...")
+            os.system("rm -rf {}/.git".format(name))
             echo_good("it's all gucci")
-            repo = git.Repo(name)
-            repo.git.remote("remove", "origin")
 
 
 @cli.command(help="Create a new post/page")
@@ -153,22 +157,37 @@ def new(post_type, post_name, title):
         return
 
     # Creating file
-    with open(filename, "w") as f:
-        f.write("# {}".format(title))
-    click.echo(echo_good("Created item at {}".format(filename)))
+    try:
+        with open(filename, "w") as f:
+            f.write("# {}".format(title))
+        click.echo(echo_good("Created item at {}".format(filename)))
+    except FileNotFoundError as e:
+        # echo_err("Could not create post at {}.".format(os.getcwd())
+        echo_err("Could not create post at {}".format(
+            os.getcwd() + "/" + filename))
+        echo_err("Ensure that you are at your site root :)")
+        return
 
     # Updating database
     # TODO: Add at the beginning of the list rather than
     #       at the end ?
     if post_type == "post":
-        with open("data/database.md", "a") as f:
-            f.write(
-                "* [{}](t.html?{}={})\n".format(
-                    title,
-                    "t" if post_type == "post" else "p",
-                    post_name,
+        
+        try:
+            with open("data/database.md", "a") as f:
+                f.write(
+                    "* [{}](t.html?{}={})\n".format(
+                        title,
+                        "t" if post_type == "post" else "p",
+                        post_name,
+                    )
                 )
-            )
+        except FileNotFoundError as e:
+            # echo_err("Could not create post at {}.".format(os.getcwd())
+            echo_err("Could not find database at {}".format(
+                os.getcwd() + "/data/database.md"))
+            echo_err("Ensure that you are at your site root :)")
+            return
     else:
         echo_warn(
             "Not updating database since you've created a page"
@@ -179,49 +198,58 @@ def new(post_type, post_name, title):
 def items():
     echo_warn("database.md support is experimental af")
 
-    items = os.listdir("data/topics")
-    pages = [item for item in items if item.startswith("_")]
-    posts = [item for item in items if item not in pages]
+    pages = []
+    posts = []
 
-    postlist = {}
+    try:
+        items = os.listdir("data/topics")
+        pages = [item for item in items if item.startswith("_")]
+        posts = [item for item in items if item not in pages]
 
-    # Open the post list
-    # And get post listing (lines that are * [blahblah]())
-    # TODO: This is very ugly.
-    with open("data/database.md", "r") as dbfile:
+        postlist = {}
 
-        # Go from * [foo](t.html?p=bar)
-        # To {title:'foo', 'filename':_bar.md}
-        for line in dbfile.readlines():
-            if "* [" in line:
-                # * [foo](t.html?p=bar)
-                line = line.replace("* [", "")
-                line = line.replace(")\n", "")
+        # Open the post list
+        # And get post listing (lines that are * [blahblah]())
+        # TODO: This is very ugly.
+        with open("data/database.md", "r") as dbfile:
 
-                # foo]t.html?p=bar)
-                title, filename_and_type = line.split(
-                    "](t.html?", 2
-                )
+            # Go from * [foo](t.html?p=bar)
+            # To {title:'foo', 'filename':_bar.md}
+            for line in dbfile.readlines():
+                if "* [" in line:
+                    # * [foo](t.html?p=bar)
+                    line = line.replace("* [", "")
+                    line = line.replace(")\n", "")
 
-                # title:foo, filename_and_type:p=bar
-
-                item_type, filename = filename_and_type.split("=")
-
-                if item_type == "t":
-                    pass
-                elif item_type == "p":
-                    filename = "_" + filename
-                else:
-                    echo_err(
-                        "There's a problem in this link : {}".format(
-                            line
-                        )
+                    # foo]t.html?p=bar)
+                    title, filename_and_type = line.split(
+                        "](t.html?", 2
                     )
-                postlist[filename + ".md"] = title
+
+                    # title:foo, filename_and_type:p=bar
+
+                    item_type, filename = filename_and_type.split("=")
+
+                    if item_type == "t":
+                        pass
+                    elif item_type == "p":
+                        filename = "_" + filename
+                    else:
+                        echo_err(
+                            "There's a problem in this link : {}".format(
+                                line
+                            )
+                        )
+                    postlist[filename + ".md"] = title
+    except FileNotFoundError as e:
+        echo_err("Database file not found : data/database.md")
+        echo_err("Are you in your site's directory ?")
+        # echo_err(e.message)
 
     # List pages
     click.echo("\nPages:")
     click.echo("------")
+
     for item in pages:
         click.echo(
             c.yellow("  - data/topics/{}".format(item), bold=True)
@@ -257,15 +285,23 @@ def clean():
 )
 def link(url):
     with blindspin.spinner():
-        # repo.git.remote("add", "tibl", url)
-        cmd_result = subprocess.run(
-            ["git", "remote", "add", "tibl", url],
-            stdout=subprocess.PIPE,
-        )
-    if cmd_result.returncode != 0:
-        echo_err("Error setting tibl remote")
-    else:
-        echo_good("tibl remote added")
+        echo_warn("Initializing repository...")
+        repo = git.Repo.init(".")
+        echo_warn("Adding tibl remote...")
+        try:
+            repo.git.remote("add", "tibl", url)
+        except git.exc.GitCommandError as e:
+            echo_err("tibl remote already exists")
+            echo(
+                "{}{}{}".format(
+                    c.red("Use "),
+                    c.red(
+                        "git remote set-url tibl {} ".format(url),
+                        bold=True,
+                    ),
+                    c.red("for now"),
+                )
+            )
 
 
 @cli.command(help="Push changes to a github repository")
@@ -276,31 +312,57 @@ def link(url):
 )
 def push(only_data):
     with blindspin.spinner():
-        if only_data:
-            repo.index.add(["data/"])
-        else:
-            repo.index.add(["*"])
+        try:
+            if only_data:
+                repo.index.add(["data/"])
+            else:
+                repo.index.add(["*"])
 
-        repo.index.commit("tibl: update content")
-        repo.git.push("tibl", "master")
-        # repo.remotes.tibl.push('')
-        echo_good("Successfully pushed changes")
+            repo.index.commit("tibl: update content")
+            repo.git.push("tibl", "master")
+            # repo.remotes.tibl.push('')
+            echo_good("Successfully pushed changes")
+        except NameError as e:
+            echo_err("No git repository set.")
+            echo("{}{}{}{}{}.".format(
+                c.red("Run "),
+                c.red("tibl link ", bold=True),
+                c.red("then call "),
+                c.red("tibl push ", bold=True),
+                c.red("again")
+            ))
 
 
 @cli.command(help="Pull changes from a github repository")
 def pull():
-    if repo.is_dirty():
-        echo_err(
-            "Pulling in a dirty state is unsupported for now."
-        )
-    else:
-        repo.git.pull("--rebase", "tibl", "master")
-        echo_good("Got updoots")
+    try:
+        if repo.is_dirty():
+            echo_err(
+                "Pulling in a dirty state is unsupported for now."
+            )
+        else:
+            repo.git.pull("--rebase", "tibl", "master")
+            echo_good("Got updoots")
+    except NameError as e:
+        echo_err("No git repository set.")
+        echo("{}{}{}{}{}.".format(
+            c.red("Run "),
+            c.red("tibl link ", bold=True),
+            c.red("then call "),
+            c.red("tibl push ", bold=True),
+            c.red("again")
+        ))
+
 
 
 @cli.command(help="Print out current changes")
 def changes():
-    click.echo(repo.git.status())
+    try:
+        click.echo(repo.git.status())
+    except NameError:
+        echo_err("Could not find any git repository:")
+        echo_err("- Are you in your site folder?")
+        echo_err("- Did you link any git repository?")
 
 
 def update():
@@ -315,14 +377,24 @@ def serve(port):
         visit its site.
     """
     Handler = http.server.SimpleHTTPRequestHandler
-
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        echo_good(
-            "Your site lives here : http://localhost:{}".format(
-                port
+    
+    try:
+        with socketserver.TCPServer(("", port), Handler) as httpd:
+            echo_good(
+                "Your site lives here : http://localhost:{}".format(
+                    port
+                )
+            )
+            httpd.serve_forever()
+    except OSError as e:
+        click.echo(c.magenta(e))
+        echo_err("Port is already in use (by tibl probably :[)")
+        click.echo("{}{}{}".format(
+            c.red("Use "),
+            c.red("tibl serve --port PORT ", bold=True),
+            c.red("as a workaround :]")
             )
         )
-        httpd.serve_forever()
 
 
 if __name__ == "__main__":
