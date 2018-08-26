@@ -316,12 +316,15 @@ def push(only_data):
             if only_data:
                 repo.index.add(["data/"])
             else:
-                repo.index.add(["*"])
+                repo.index.add(["*", ".nojekyll"])
 
             repo.index.commit("tibl: update content")
             repo.git.push("tibl", "master")
             # repo.remotes.tibl.push('')
             echo_good("Successfully pushed changes")
+        except git.exc.GitCommandError as e:
+            click.echo(e.stderr)
+            echo_err("Unable to push to repository")
         except NameError as e:
             echo_err("No git repository set.")
             echo("{}{}{}{}{}.".format(
@@ -343,6 +346,9 @@ def pull():
         else:
             repo.git.pull("--rebase", "tibl", "master")
             echo_good("Got updoots")
+    except git.exc.GitCommandError as e:
+        click.echo(e.stderr)
+        echo_err("Unable to pull from repository")
     except NameError as e:
         echo_err("No git repository set.")
         echo("{}{}{}{}{}.".format(
