@@ -2,9 +2,6 @@
 
 [tibl](https://github.com/Uinelj/tibl) python command line interface.
 
-<p align="center">
-    <img src="tibl-cli-demo.svg">
-</p>
 
 ## Features 
 
