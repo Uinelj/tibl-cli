@@ -6,11 +6,11 @@ import blindspin
 import crayons
 
 from .tibl import Tibl
-
+from .exc import *
 
 def cli_print(string, level="ok", prefix="🗿", bold=False):
     ret = prefix + " " + string
-    if level == " ok":
+    if level == "ok":
         click.echo(crayons.green(ret, bold=bold))
     elif level == "wrn":
         click.echo(crayons.yellow(ret, bold=bold))
@@ -18,6 +18,8 @@ def cli_print(string, level="ok", prefix="🗿", bold=False):
         click.echo(crayons.red(ret, bold=bold))
     elif level == "dbg":
         click.echo(crayons.magenta(ret, bold=bold))
+    else:
+        click.echo("Wrong color m8")
 
 @click.group()
 def cli():
@@ -71,13 +73,18 @@ def new(post_type, post_name, title):
         :param title: Title that you'll have on the post listing
     """
     tibl = Tibl('.')
-    tibl.new(post_type, post_name, title)
-    cli_print("Check for error logs, error handling is messy right now", level="wrn")
+    try:
+        tibl.new(post_type, post_name, title)
+    except TiblFileError:
+        cli_print("Unable to create {}, ensure that you are in your site's directory".format(post_name), level="err")
+        sys.exit(1)
+    cli_print("Created {}: {}".format(post_type, post_name))
 
 
 @cli.command(help="list posts and pages")
 def items():
-    cli_print("Not implemented")
+    cli_print("items has been deactivated because it worked bad.", level="wrn")
+    cli_print("Use tree data/, sorry", level="wrn")
     pass
 
 
@@ -87,7 +94,12 @@ def items():
 )
 def link(url):
     tibl = Tibl('.')
-    tibl.link(url)
+    try:
+        tibl.link(url)
+    except TiblGitError:
+        cli_print("Unable to link with repository {}".format(url), level="err")
+        sys.exit(1)
+    cli_print("Linked with repository {}".format(url))
 
 @cli.command(help="Push changes to a github repository")
 @click.option(
@@ -97,20 +109,31 @@ def link(url):
 )
 def push(only_data):
     tibl = Tibl('.')
-    tibl.push()
-    cli_print("Check for error logs, error handling is messy right now", level="warn")
+    try:
+        tibl.push()
+    except TiblGitError:
+        cli_print("Error trying to push changes to remote repository", level="err")
+        sys.exit(1)
+    cli_print("Pushed changes to remote repository", level="warn")
 
 @cli.command(help="Pull changes from a github repository")
 def pull():
     tibl = Tibl('.')
-    tibl.push()
-    cli_print("Check for error logs, error handling is messy right now", level="warn")
+    try:
+        tibl.push()
+    except TiblGitError:
+        cli_print("Error trying to pull changes from remote repository", level="err")
+        sys.exit(1)
+    cli_print("Pulled changes from remote repository", level="warn")
 
 @cli.command(help="Print out current changes")
 def changes():
     tibl = Tibl('.')
-    tibl.changes()
-    cli_print("Check for error logs, error handling is messy right now", level="warn")
+    try:
+        tibl.changes()
+    except TiblGitError:
+        cli_print("Check that git is properly initialized in your directory", level="wrn")
+        sys.exit(1)
 
 def update():
     pass
@@ -124,6 +147,7 @@ def serve(port):
         visit its site.
     """
     tibl = Tibl('.')
+    cli_print("Serving on localhost:{}...".format(port))
     tibl.serve(port)
 if __name__ == "__main__":
 
