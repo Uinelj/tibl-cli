@@ -1,408 +1,253 @@
 import logging
+import shutil
+import getpass
 import os
-import http.server
-import socketserver
-import subprocess
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-import click
-import crayons as c
-import blindspin
-import git
+from git import Repo
+from git.exc import *
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("tibl")
+git_logger = logging.getLogger("git")
+git_logger.setLevel(logging.INFO)
 
-try:
-    repo = git.Repo(".")
-except git.exc.InvalidGitRepositoryError as e:
-    pass
+log = logging.getLogger(__name__)
 
+logging.basicConfig(level=logging.DEBUG)
 
-def echo(string, prefix="🗿"):
-    click.echo(prefix + " " + string)
 
+def git_error(func):
+  """
+  TODO: Decorator for handling GitCommandErrors 
+  If error isn't of type GitCommandError, raise and quit
+  If not, print a custom message.
+  """
+  try:
+    func()
+  except GitCommandError as e:
+    log.warn("Git command failed :(")
 
-def echo_good(string, prefix="🗿"):
-    """
-        Prints out in green.
-
-        :param string: String to print
-        :param prefix: String to put at the left,
-                       to emulate hipster nodejs apps
-    """
-    click.echo(c.green(prefix + " " + string))
-
-
-def echo_warn(string, prefix="🗿"):
-    """
-        Prints out in yellow.
-
-        :param string: String to print
-        :param prefix: String to put at the left,
-                       to emulate hipster nodejs apps
-    """
-    click.echo(c.yellow(prefix + " " + string))
-
-
-def echo_err(string, prefix="🗿"):
-    """
-        Prints out in red.
-
-        :param string: String to print
-        :param prefix: String to put at the left,
-                       to emulate hipster nodejs apps
-    """
-    click.echo(c.red(prefix + " " + string))
-
-
-@click.group()
-def cli():
-    pass
-
-
-@cli.command(help="Create a new tibl site")
-@click.option("--name", prompt="Site directory")
-def create(name):
-    """
-        Clone the master branch of tibl into the specified folder.
-
-        :param name: Name of the folder. 
-                     Should work with directories.
-    """
-    click.echo("Cloning tibl...")
-
-    with blindspin.spinner():
-        clone_result = subprocess.run(
-            [
-                "git",
-                "clone",
-                "https://github.com/Uinelj/tibl.git",
-                name,
-                "-q",
-            ],
-            stdout=subprocess.PIPE,
-        )
-
-        # Check if all went good
-        if clone_result.returncode != 0:
-            echo_err("Something went wrong when cloning tibl")
-        else:
-            click.echo("Removing .git...")
-            os.system("rm -rf {}/.git".format(name))
-            echo_good("it's all gucci")
-
-
-@cli.command(help="Create a new post/page")
-@click.option(
-    "--post_type",
-    prompt="Item type:",
-    default="post",
-    help="can be post or page.",
-)
-@click.option(
-    "--post_name",
-    prompt="File name: ",
-    default="hello",
-    help="don't use spaces or non-ascii characters",
-)
-@click.option(
-    "--title",
-    prompt="Item title: ",
-    default="Hi",
-    help="this will be the title of your new item",
-)
-def new(post_type, post_name, title):
-    """
-        Create a new post and add it to the database
-
-        :param post_type: Item type. Can be post or page.
-        :param post_name: File name of the post
-        :param title: Title that you'll have on the post listing
-    """
-
-    # Check input validity
-
-    # Check if post_type exists
-    if post_type not in ["post", "page"]:
-        echo_err("Invalid post type supplied.")
-        return
-
-    # Check if there's non ascii characters into the post name
-    if len(post_name) != len(post_name.encode()):
-        echo_err(
-            "Invalid characters in post name. Please use only ascii."
-        )
-        return
-
-    # Check if there's any spaces in the post name
-    if " " in post_name:
-        echo_err("Don't use spaces in post name.")
-        return
-
-    # End of check
-
-    # Add markdown extention
-    filename = post_name + ".md"
-
-    # add a _ to separate pages and posts
-    if post_type == "page":
-        filename = "_" + filename
-
-    # Add path to topics
-    filename = "data/topics/" + filename
-
-    # Check if file exists
-    if os.path.isfile(filename):
-        echo_err("File {} already exists.".format(filename))
-        return
-
-    # Creating file
-    try:
-        with open(filename, "w") as f:
-            f.write("# {}".format(title))
-        click.echo(echo_good("Created item at {}".format(filename)))
-    except FileNotFoundError as e:
-        # echo_err("Could not create post at {}.".format(os.getcwd())
-        echo_err("Could not create post at {}".format(
-            os.getcwd() + "/" + filename))
-        echo_err("Ensure that you are at your site root :)")
-        return
-
-    # Updating database
-    # TODO: Add at the beginning of the list rather than
-    #       at the end ?
-    if post_type == "post":
-        
-        try:
-            with open("data/database.md", "a") as f:
-                f.write(
-                    "* [{}](t.html?{}={})\n".format(
-                        title,
-                        "t" if post_type == "post" else "p",
-                        post_name,
-                    )
-                )
-        except FileNotFoundError as e:
-            # echo_err("Could not create post at {}.".format(os.getcwd())
-            echo_err("Could not find database at {}".format(
-                os.getcwd() + "/data/database.md"))
-            echo_err("Ensure that you are at your site root :)")
-            return
-    else:
-        echo_warn(
-            "Not updating database since you've created a page"
-        )
-
-
-@cli.command(help="list posts and pages")
-def items():
-    echo_warn("database.md support is experimental af")
-
-    pages = []
-    posts = []
-
-    try:
-        items = os.listdir("data/topics")
-        pages = [item for item in items if item.startswith("_")]
-        posts = [item for item in items if item not in pages]
-
-        postlist = {}
-
-        # Open the post list
-        # And get post listing (lines that are * [blahblah]())
-        # TODO: This is very ugly.
-        with open("data/database.md", "r") as dbfile:
-
-            # Go from * [foo](t.html?p=bar)
-            # To {title:'foo', 'filename':_bar.md}
-            for line in dbfile.readlines():
-                if "* [" in line:
-                    # * [foo](t.html?p=bar)
-                    line = line.replace("* [", "")
-                    line = line.replace(")\n", "")
-
-                    # foo]t.html?p=bar)
-                    title, filename_and_type = line.split(
-                        "](t.html?", 2
-                    )
-
-                    # title:foo, filename_and_type:p=bar
-
-                    item_type, filename = filename_and_type.split("=")
-
-                    if item_type == "t":
-                        pass
-                    elif item_type == "p":
-                        filename = "_" + filename
-                    else:
-                        echo_err(
-                            "There's a problem in this link : {}".format(
-                                line
-                            )
-                        )
-                    postlist[filename + ".md"] = title
-    except FileNotFoundError as e:
-        echo_err("Database file not found : data/database.md")
-        echo_err("Are you in your site's directory ?")
-        # echo_err(e.message)
-
-    # List pages
-    click.echo("\nPages:")
-    click.echo("------")
-
-    for item in pages:
-        click.echo(
-            c.yellow("  - data/topics/{}".format(item), bold=True)
-        )
-
-    # List posts
-    # Display title if in database
-    click.echo("\nPosts (Path -> Title):")
-    click.echo("------")
-
-    # We try to get the item from the postlist
-    # If we can't, we format in red
-    for item in posts:
-        fmt = "  - data/topics/{} -> {}"
-        try:
-            title = postlist[item]
-        except KeyError:
-            fmt = c.red(fmt.format(item, ""), bold=True)
-        else:
-            fmt = c.green(fmt.format(item, title), bold=True)
-        click.echo(fmt)
-
-    click.echo("")
-
-
-def clean():
-    pass
-
-
-@cli.command(help="link a github repository")
-@click.option(
-    "--url", prompt="GitHub URL:", help="Github URL of your repo"
-)
-def link(url):
-    with blindspin.spinner():
-        echo_warn("Initializing repository...")
-        repo = git.Repo.init(".")
-        echo_warn("Adding tibl remote...")
-        try:
-            repo.git.remote("add", "tibl", url)
-        except git.exc.GitCommandError as e:
-            echo_err("tibl remote already exists")
-            echo(
-                "{}{}{}".format(
-                    c.red("Use "),
-                    c.red(
-                        "git remote set-url tibl {} ".format(url),
-                        bold=True,
-                    ),
-                    c.red("for now"),
-                )
-            )
-
-
-@cli.command(help="Push changes to a github repository")
-@click.option(
-    "--only-data",
-    default=False,
-    help="Only push data/ folder. Default is false",
-)
-def push(only_data):
-    with blindspin.spinner():
-        try:
-            if only_data:
-                repo.index.add(["data/"])
-            else:
-                repo.index.add(["*", ".nojekyll"])
-
-            repo.index.commit("tibl: update content")
-            repo.git.push("tibl", "master")
-            # repo.remotes.tibl.push('')
-            echo_good("Successfully pushed changes")
-        except git.exc.GitCommandError as e:
-            click.echo(e.stderr)
-            echo_err("Unable to push to repository")
-        except NameError as e:
-            echo_err("No git repository set.")
-            echo("{}{}{}{}{}.".format(
-                c.red("Run "),
-                c.red("tibl link ", bold=True),
-                c.red("then call "),
-                c.red("tibl push ", bold=True),
-                c.red("again")
-            ))
-
-
-@cli.command(help="Pull changes from a github repository")
-def pull():
-    try:
-        if repo.is_dirty():
-            echo_err(
-                "Pulling in a dirty state is unsupported for now."
-            )
-        else:
-            repo.git.pull("--rebase", "tibl", "master")
-            echo_good("Got updoots")
-    except git.exc.GitCommandError as e:
-        click.echo(e.stderr)
-        echo_err("Unable to pull from repository")
-    except NameError as e:
-        echo_err("No git repository set.")
-        echo("{}{}{}{}{}.".format(
-            c.red("Run "),
-            c.red("tibl link ", bold=True),
-            c.red("then call "),
-            c.red("tibl push ", bold=True),
-            c.red("again")
-        ))
-
-
-
-@cli.command(help="Print out current changes")
-def changes():
-    try:
-        click.echo(repo.git.status())
-    except NameError:
-        echo_err("Could not find any git repository:")
-        echo_err("- Are you in your site folder?")
-        echo_err("- Did you link any git repository?")
-
-
-def update():
-    pass
-
-
-@cli.command(help="serve your website locally")
-@click.option("--port", default=8080, help="server port")
-def serve(port):
-    """
-        Start a tiny http server that enables the user to 
-        visit its site.
-    """
-    Handler = http.server.SimpleHTTPRequestHandler
+class Tibl:
+  """
+    Represents a tibl instance.
     
+    TODO: Separate git and non git code.
+          This way, it will be easier to use tibl-cli without git.
+          Git code is changes, pull, and push.
+  """
+
+  def __init__(self, name):
+    """
+      Create a tibl instance object to talk with tibl.
+      Tries to get git repo if it is present.
+      Otherwise, you won't be able to use pull/push feature. 
+
+      :param name: name of the tibl site
+    """
+    self.name = name
+
+    # See if a git repo is present, and make it accessible
+    # if there's one
     try:
-        with socketserver.TCPServer(("", port), Handler) as httpd:
-            echo_good(
-                "Your site lives here : http://localhost:{}".format(
-                    port
-                )
-            )
-            httpd.serve_forever()
-    except OSError as e:
-        click.echo(c.magenta(e))
-        echo_err("Port is already in use (by tibl probably :[)")
-        click.echo("{}{}{}".format(
-            c.red("Use "),
-            c.red("tibl serve --port PORT ", bold=True),
-            c.red("as a workaround :]")
-            )
-        )
+      self.repo = Repo(self.name)
+      self.tibl_remote = self.repo.remotes['tibl']
+    except InvalidGitRepositoryError as e:
+      log.info("No repository at {}".format(name))
+    except NoSuchPathError as e:
+      log.info("Nothing found at {}".format(name))
 
+  def items(self):
+    """
+      List docs.
 
-if __name__ == "__main__":
+      Previous implementation was messy and not better
+      than calling `tree`.
+    """
+    log.info("Not yet implemented.")
+    pass
+  
+  def new(self, post_type, post_name, title):
+      """
+          Create a new post and add it to the database
 
-    cli()
+          :param post_type: Item type. Can be post or page.
+          :param post_name: File name of the post
+          :param title: Title that you'll have on the post listing
+      """
+
+      # Check input validity
+
+      # Check if post_type exists
+      if post_type not in ["post", "page"]:
+          log.error("Invalid post type supplied.")
+          return
+
+      # Check if there's non ascii characters into the post name
+      if len(post_name) != len(post_name.encode()):
+          log.error(
+              "Invalid characters in post name. Please use only ascii."
+          )
+          return
+
+      # Check if there's any spaces in the post name
+      if " " in post_name:
+          log.error("Don't use spaces in post name.")
+          return
+
+      # End of check
+
+      # Add markdown extention
+      filename = post_name + ".md"
+
+      # add a _ to separate pages and posts
+      if post_type == "page":
+          filename = "_" + filename
+
+      # Add path to topics
+      filename = "data/topics/" + filename
+
+      # Check if file exists
+      if os.path.isfile(filename):
+          log.error("File {} already exists.".format(filename))
+          return
+
+      # Creating file
+      try:
+          with open(filename, "w") as f:
+              f.write("# {}".format(title))
+          log.info("Created item at {}".format(filename))
+      except FileNotFoundError as e:
+          # echo_err("Could not create post at {}.".format(os.getcwd())
+          log.error("Could not create post at {}".format(
+              os.getcwd() + "/" + filename))
+          log.error("Ensure that you are at your site root :)")
+          return
+
+      # Updating database
+      # TODO: Add at the beginning of the list rather than
+      #       at the end ?
+      if post_type == "post":
+          
+          try:
+              with open("data/database.md", "a") as f:
+                  f.write(
+                      "* [{}](t.html?{}={})\n".format(
+                          title,
+                          "t" if post_type == "post" else "p",
+                          post_name,
+                      )
+                  )
+          except FileNotFoundError as e:
+              # echo_err("Could not create post at {}.".format(os.getcwd())
+              log.error("Could not find database at {}".format(
+                  os.getcwd() + "/data/database.md"))
+              log.error("Ensure that you are at your site root :)")
+              return
+      else:
+          log.info(
+              "Not updating database since you've created a page"
+          )
+  
+  def serve(self, port=8080):
+      """
+          Start a tiny http server that enables the user to 
+          visit its site.
+
+          :param port: Port to use. Default is 8080
+      """
+      server_address = ('localhost', port)
+      httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+      log.info("Serving at http://{}:{}".format(*server_address))
+      httpd.serve_forever()
+
+  def create(name):
+    """
+      Create a new instance of tibl on the self.name folder
+    """
+    if name not in [None, ""]: 
+      if os.path.exists(name):
+        log.error("directory already exists")
+        raise FileExistsError
+
+      try:
+        Repo.clone_from("https://github.com/Uinelj/tibl", name)
+        shutil.rmtree("{}/.git".format(name), ignore_errors=True)
+      except GitCommandError as e:
+        print(e)
+        print("Error {} cloning tibl".format(e.status))
+        raise SiteAlreadyExistsError()
+    
+  def link(self, url):
+    """
+      Link instance to a remote git repository
+
+      TODO: Do this better by using GitPython objects rather than
+            its direct access to git binary.
+      
+
+      :param url: URL of the distant repository
+    """
+    try:
+      self.repo = Repo.init(self.name)
+      self.tibl_remote = self.repo.create_remote('tibl', url)
+
+    except GitCommandError as e:
+      log.error("Error {} creating tibl remote".format(e.status))
+      log.error("{}".format(e.stderr.replace("\n", '')))
+
+  def pull(self):
+    """
+      Pull changes from tibl remote (master branch)
+
+      TODO: Do this better by using GitPython objects rather than
+            its direct access to git binary.
+      TODO: Print a nice diff of changes that were imported
+    """
+    if self.repo.is_dirty():
+      log.error("You have unpublished work that's hanging around")
+      log.error("You may need to resolve this manually for now :[")
+    else:
+
+      # We don't jut do a pull, because if we do and there's conflicts,
+      # We'll have to manage those and reset HEAD.
+      # Instead, we fetch then merge with --ff-only parameter.
+      # See https://adamcod.es/2014/12/10/git-pull-correct-workflow.html
+      self.repo.git.fetch('tibl') # Getting branch updates
+      self.repo.git.checkout('master') # Be sure that we're on master
+      self.repo.git.merge('--ff-only', 'tibl/master')
+  
+  def push(self):
+    """
+      Push changes to tibl remote (master branch)
+
+      TODO: Do this better by using GitPython objects rather than
+            its direct access to git binary.
+      TODO: Print a nice diff of changes that will be pushed
+    """
+
+    # Having untracked files is not considered dirty, 
+    # So we have to watch for them
+    if self.repo.is_dirty() or len(self.repo.untracked_files) != 0:
+      self.repo.index.add(["*"])
+      self.repo.index.commit("tibl-cli: update from {}".format(getpass.getuser()))
+      self.repo.git.push('tibl', 'master')
+    else:
+      log.info("Nothing to push")
+
+  def changes(self):
+    """
+      Get a list of files that changed since last push
+    """
+    log.info(self.repo.git.status())
+
+def main():
+  repo = Tibl("coucou")
+  # repo.create()
+  # repo.status("https://foo.bar")
+  # repo.link("https://gitlab.com/Uinelj/tbtb")
+  # repo.changes()
+  # repo.pull()
+  # repo.new('page', 'zboub ', 'Hi guys !')
+  repo.serve()
+
+if __name__ == '__main__':
+  main()

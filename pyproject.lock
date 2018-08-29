@@ -1,0 +1,85 @@
+[[package]]
+category = "main"
+description = "Braille Spinner for Click"
+name = "blindspin"
+optional = false
+platform = "*"
+python-versions = "*"
+version = "2.0.1"
+
+[[package]]
+category = "main"
+description = "A simple wrapper around optparse for powerful command line utilities."
+name = "click"
+optional = false
+platform = "*"
+python-versions = "*"
+version = "6.7"
+
+[[package]]
+category = "main"
+description = "Cross-platform colored terminal text."
+name = "colorama"
+optional = false
+platform = "UNKNOWN"
+python-versions = "*"
+version = "0.3.9"
+
+[[package]]
+category = "main"
+description = "TextUI colors for Python."
+name = "crayons"
+optional = false
+platform = "*"
+python-versions = "*"
+version = "0.1.2"
+
+[package.dependencies]
+colorama = "*"
+
+[[package]]
+category = "main"
+description = "Git Object Database"
+name = "gitdb2"
+optional = false
+platform = "*"
+python-versions = "*"
+version = "2.0.4"
+
+[package.dependencies]
+smmap2 = ">=2.0.0"
+
+[[package]]
+category = "main"
+description = "Python Git Library"
+name = "gitpython"
+optional = false
+platform = "*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "2.1.11"
+
+[package.dependencies]
+gitdb2 = ">=2.0.0"
+
+[[package]]
+category = "main"
+description = "A pure python implementation of a sliding window memory map manager"
+name = "smmap2"
+optional = false
+platform = "any"
+python-versions = "*"
+version = "2.0.4"
+
+[metadata]
+content-hash = "f6a2c6c84a30bce152ba2b491d914b9a146a5be4a11ecf2c94811fc2af0c3698"
+platform = "*"
+python-versions = "3.5"
+
+[metadata.hashes]
+blindspin = ["31c4e93d4ae2ef6765e3c42460456814c17addd5add8298dced21fe9dc50f496", "b30ef7a26ef1637c1d047667b279e8c15dc2a78fcfaad6b3027d7217e752bdba"]
+click = ["29f99fc6125fbc931b758dc053b3114e55c77a6e4c6c3a2674a2dc986016381d", "f15516df478d5a56180fbf80e68f206010e6d160fc39fa508b65e035fd75130b"]
+colorama = ["463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda", "48eb22f4f8461b1df5734a074b57042430fb06e1d61bd1e11b078c0fe6d7a1f1"]
+crayons = ["5e17691605e564d63482067eb6327d01a584bbaf870beffd4456a3391bd8809d", "6f51241d0c4faec1c04c1c0ac6a68f1d66a4655476ce1570b3f37e5166a599cc"]
+gitdb2 = ["87783b7f4a8f6b71c7fe81d32179b3c8781c1a7d6fa0c69bff2f315b00aff4f8", "bb4c85b8a58531c51373c89f92163b92f30f81369605a67cd52d1fc21246c044"]
+gitpython = ["563221e5a44369c6b79172f455584c9ebbb122a13368cc82cb4b5addff788f82", "8237dc5bfd6f1366abeee5624111b9d6879393d84745a507de0fda86043b65a8"]
+smmap2 = ["0dd53d991af487f9b22774fa89451358da3607c02b9b886a54736c6a313ece0b", "dc216005e529d57007ace27048eb336dcecb7fc413cfb3b2f402bb25972b69c6"]
