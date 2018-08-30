@@ -200,6 +200,7 @@ class Tibl:
     except GitCommandError as e:
       log.error("Error {} creating tibl remote".format(e.status))
       log.error("{}".format(e.stderr.replace("\n", '')))
+      raise TiblGitError(e, "Could not add tibl remote. Check if it doesn't already exist")
 
   def pull(self):
     """
