@@ -84,12 +84,6 @@ def new(post_type, post_name, title):
     cli_print("Created {}: {}".format(post_type, post_name))
 
 
-@cli.command(help="list posts and pages")
-def items():
-    cli_print("items has been deactivated because it worked bad.", level="wrn")
-    cli_print("Use tree data/, sorry", level="wrn")
-    pass
-
 @cli.command(help="serve your website locally")
 @click.option("--port", default=8080, help="server port")
 def serve(port):

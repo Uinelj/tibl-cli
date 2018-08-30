@@ -113,10 +113,6 @@ class Tibl:
                       )
                   )
           except FileNotFoundError as e:
-              # echo_err("Could not create post at {}.".format(os.getcwd())
-              log.error("Could not find database at {}".format(
-                  os.getcwd() + "/data/database.md"))
-              log.error("Ensure that you are at your site root :)")
               raise TiblFileError("Could not find database at {}".format(
                   os.getcwd() + "/data/database.md"))
       else:
