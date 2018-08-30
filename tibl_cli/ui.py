@@ -96,6 +96,7 @@ def items():
     "--url", prompt="GitHub URL:", help="Github URL of your repo"
 )
 def link(url):
+    cli_print("tibl-cli git commands are really bad. Expect 🐉")
     tibl = Tibl('.')
     try:
         tibl.link(url)
@@ -112,6 +113,7 @@ def link(url):
     help="Only push data/ folder. Default is false",
 )
 def push(only_data):
+    cli_print("tibl-cli git commands are really bad. Expect 🐉")
     tibl = Tibl('.')
     try:
         tibl.push()
@@ -122,6 +124,7 @@ def push(only_data):
 
 @cli.command(help="Pull changes from a github repository")
 def pull():
+    cli_print("tibl-cli git commands are really bad. Expect 🐉")
     tibl = Tibl('.')
     try:
         tibl.push()
@@ -132,6 +135,7 @@ def pull():
 
 @cli.command(help="Print out current changes")
 def changes():
+    cli_print("tibl-cli git commands are really bad. Expect 🐉")
     tibl = Tibl('.')
     try:
         tibl.changes()
