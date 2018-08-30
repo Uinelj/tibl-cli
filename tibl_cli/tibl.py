@@ -20,16 +20,6 @@ logging.basicConfig(level=logging.DEBUG)
 log.disabled = True
 git_logger.disabled = True
 
-def git_error(func):
-  """
-  TODO: Decorator for handling GitCommandErrors 
-  If error isn't of type GitCommandError, raise and quit
-  If not, print a custom message.
-  """
-  try:
-    func()
-  except GitCommandError as e:
-    log.warn("Git command failed :(")
 
 class Tibl:
   """
@@ -50,27 +40,6 @@ class Tibl:
     """
     self.name = name
 
-    # See if a git repo is present, and make it accessible
-    # if there's one
-    try:
-      self.repo = Repo(self.name)
-      self.tibl_remote = self.repo.remotes['tibl']
-    except InvalidGitRepositoryError as e:
-      log.info("No repository at {}".format(name))
-      # raise TiblGitError
-    except NoSuchPathError as e:
-      log.info("Nothing found at {}".format(name))
-      raise TiblFileError("Nothing found at {}".format(name))
-
-  def items(self):
-    """
-      List docs.
-
-      Previous implementation was messy and not better
-      than calling `tree`.
-    """
-    log.info("Not yet implemented.")
-    pass
   
   def new(self, post_type, post_name, title):
       """
@@ -184,84 +153,3 @@ class Tibl:
         print("Error {} cloning tibl".format(e.status))
         raise TiblGitError(e, "Error {} cloning tibl".format(e.status))
     
-  def link(self, url):
-    """
-      Link instance to a remote git repository
-
-      TODO: Do this better by using GitPython objects rather than
-            its direct access to git binary.
-      
-
-      :param url: URL of the distant repository
-    """
-    try:
-      self.repo = Repo.init(self.name)
-      self.tibl_remote = self.repo.create_remote('tibl', url)
-    except GitCommandError as e:
-      log.error("Error {} creating tibl remote".format(e.status))
-      log.error("{}".format(e.stderr.replace("\n", '')))
-      raise TiblGitError(e, "Could not add tibl remote. Check if it doesn't already exist")
-
-  def pull(self):
-    """
-      Pull changes from tibl remote (master branch)
-
-      TODO: Do this better by using GitPython objects rather than
-            its direct access to git binary.
-      TODO: Print a nice diff of changes that were imported
-    """
-    if self.repo.is_dirty():
-      log.error("You have unpublished work that's hanging around")
-      log.error("You may need to resolve this manually for now :[")
-    else:
-
-      # We don't jut do a pull, because if we do and there's conflicts,
-      # We'll have to manage those and reset HEAD.
-      # Instead, we fetch then merge with --ff-only parameter.
-      # See https://adamcod.es/2014/12/10/git-pull-correct-workflow.html
-      self.repo.git.fetch('tibl') # Getting branch updates
-      self.repo.git.checkout('master') # Be sure that we're on master
-      self.repo.git.merge('--ff-only', 'tibl/master')
-  
-  def push(self):
-    """
-      Push changes to tibl remote (master branch)
-
-      TODO: Do this better by using GitPython objects rather than
-            its direct access to git binary.
-      TODO: Print a nice diff of changes that will be pushed
-    """
-
-    # Having untracked files is not considered dirty, 
-    # So we have to watch for them
-    try:
-      if self.repo.is_dirty() or len(self.repo.untracked_files) != 0:
-        self.repo.index.add(["*", ".nojekyll"])
-        self.repo.index.commit("tibl-cli: update from {}".format(getpass.getuser()))
-        self.repo.git.push('tibl', 'master')
-      else:
-        log.info("Nothing to push")
-    except GitCommandError as e:
-      raise TiblGitError(e, "Unable to push changes")
-
-  def changes(self):
-    """
-      Get a list of files that changed since last push
-    """
-    try:
-      print(self.repo.git.status())
-    except AttributeError:
-      raise TiblGitError("", "Unable to display changes")
-
-def main():
-  repo = Tibl("coucou")
-  # repo.create()
-  # repo.status("https://foo.bar")
-  # repo.link("https://gitlab.com/Uinelj/tbtb")
-  # repo.changes()
-  # repo.pull()
-  # repo.new('page', 'zboub ', 'Hi guys !')
-  repo.serve()
-
-if __name__ == '__main__':
-  main()
