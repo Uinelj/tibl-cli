@@ -8,6 +8,7 @@ import crayons
 from .tibl import Tibl
 from .exc import *
 
+
 def cli_print(string, level="ok", prefix="🗿", bold=False):
     ret = prefix + " " + string
     if level == "ok":
@@ -21,9 +22,11 @@ def cli_print(string, level="ok", prefix="🗿", bold=False):
     else:
         click.echo(ret)
 
+
 @click.group()
 def cli():
     pass
+
 
 @cli.command(help="Create a new tibl site")
 @click.option("--name", prompt="Site directory")
@@ -41,16 +44,14 @@ def create(name):
             Tibl.create(name)
         except FileExistsError as e:
             cli_print("directory {} already exists".format(name), level="err")
-            sys.exit(1) 
+            sys.exit(1)
     cli_print("tibl site {} created !".format(name), level="ok")
     sys.exit(0)
 
+
 @cli.command(help="Create a new post/page")
 @click.option(
-    "--post_type",
-    prompt="Item type:",
-    default="post",
-    help="can be post or page.",
+    "--post_type", prompt="Item type:", default="post", help="can be post or page."
 )
 @click.option(
     "--post_name",
@@ -72,11 +73,16 @@ def new(post_type, post_name, title):
         :param post_name: File name of the post
         :param title: Title that you'll have on the post listing
     """
-    tibl = Tibl('.')
+    tibl = Tibl(".")
     try:
         tibl.new(post_type, post_name, title)
     except TiblFileError:
-        cli_print("Unable to create {}, ensure that you are in your site's directory".format(post_name), level="err")
+        cli_print(
+            "Unable to create {}, ensure that you are in your site's directory".format(
+                post_name
+            ),
+            level="err",
+        )
         sys.exit(1)
     except TiblFormatError as e:
         cli_print(e.message, level="err")
@@ -91,9 +97,11 @@ def serve(port):
         Start a tiny http server that enables the user to 
         visit its site.
     """
-    tibl = Tibl('.')
+    tibl = Tibl(".")
     cli_print("Serving on localhost:{}...".format(port))
     tibl.serve(port)
+
+
 if __name__ == "__main__":
 
     cli()
