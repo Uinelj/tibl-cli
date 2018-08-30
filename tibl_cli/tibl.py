@@ -197,7 +197,6 @@ class Tibl:
     try:
       self.repo = Repo.init(self.name)
       self.tibl_remote = self.repo.create_remote('tibl', url)
-
     except GitCommandError as e:
       log.error("Error {} creating tibl remote".format(e.status))
       log.error("{}".format(e.stderr.replace("\n", '')))
@@ -237,7 +236,7 @@ class Tibl:
     # So we have to watch for them
     try:
       if self.repo.is_dirty() or len(self.repo.untracked_files) != 0:
-        self.repo.index.add(["*"])
+        self.repo.index.add(["*", ".nojekyll"])
         self.repo.index.commit("tibl-cli: update from {}".format(getpass.getuser()))
         self.repo.git.push('tibl', 'master')
       else:

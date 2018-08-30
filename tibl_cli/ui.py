@@ -103,7 +103,7 @@ def link(url):
         # cli_print("Unable to link with repository {}".format(url), level="err")
         cli_print(e.message, level="err")
         sys.exit(1)
-    cli_print("Linked with repository {}".format(url))
+    cli_print("Linked with repository {}".format(url), level="ok")
 
 @cli.command(help="Push changes to a github repository")
 @click.option(
