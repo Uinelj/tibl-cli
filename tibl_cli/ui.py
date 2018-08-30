@@ -90,63 +90,6 @@ def items():
     cli_print("Use tree data/, sorry", level="wrn")
     pass
 
-
-@cli.command(help="link a github repository")
-@click.option(
-    "--url", prompt="GitHub URL:", help="Github URL of your repo"
-)
-def link(url):
-    cli_print("tibl-cli git commands are really bad. Expect 🐉")
-    tibl = Tibl('.')
-    try:
-        tibl.link(url)
-    except TiblGitError as e:
-        # cli_print("Unable to link with repository {}".format(url), level="err")
-        cli_print(e.message, level="err")
-        sys.exit(1)
-    cli_print("Linked with repository {}".format(url), level="ok")
-
-@cli.command(help="Push changes to a github repository")
-@click.option(
-    "--only-data",
-    default=False,
-    help="Only push data/ folder. Default is false",
-)
-def push(only_data):
-    cli_print("tibl-cli git commands are really bad. Expect 🐉")
-    tibl = Tibl('.')
-    try:
-        tibl.push()
-    except TiblGitError:
-        cli_print("Error trying to push changes to remote repository", level="err")
-        sys.exit(1)
-    cli_print("Pushed changes to remote repository", level="warn")
-
-@cli.command(help="Pull changes from a github repository")
-def pull():
-    cli_print("tibl-cli git commands are really bad. Expect 🐉")
-    tibl = Tibl('.')
-    try:
-        tibl.push()
-    except TiblGitError:
-        cli_print("Error trying to pull changes from remote repository", level="err")
-        sys.exit(1)
-    cli_print("Pulled changes from remote repository", level="warn")
-
-@cli.command(help="Print out current changes")
-def changes():
-    cli_print("tibl-cli git commands are really bad. Expect 🐉")
-    tibl = Tibl('.')
-    try:
-        tibl.changes()
-    except TiblGitError:
-        cli_print("Check that git is properly initialized in your directory", level="wrn")
-        sys.exit(1)
-
-def update():
-    pass
-
-
 @cli.command(help="serve your website locally")
 @click.option("--port", default=8080, help="server port")
 def serve(port):

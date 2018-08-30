@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 # Disable logging because too verbose for now.
-log.disabled = False
+log.disabled = True
 git_logger.disabled = True
 
 def git_error(func):
