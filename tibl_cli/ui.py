@@ -19,7 +19,7 @@ def cli_print(string, level="ok", prefix="🗿", bold=False):
     elif level == "dbg":
         click.echo(crayons.magenta(ret, bold=bold))
     else:
-        click.echo("Wrong color m8")
+        click.echo(ret)
 
 @click.group()
 def cli():
