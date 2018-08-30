@@ -78,6 +78,9 @@ def new(post_type, post_name, title):
     except TiblFileError:
         cli_print("Unable to create {}, ensure that you are in your site's directory".format(post_name), level="err")
         sys.exit(1)
+    except TiblFormatError as e:
+        cli_print(e.message, level="err")
+        sys.exit(1)
     cli_print("Created {}: {}".format(post_type, post_name))
 
 
@@ -96,8 +99,9 @@ def link(url):
     tibl = Tibl('.')
     try:
         tibl.link(url)
-    except TiblGitError:
-        cli_print("Unable to link with repository {}".format(url), level="err")
+    except TiblGitError as e:
+        # cli_print("Unable to link with repository {}".format(url), level="err")
+        cli_print(e.message, level="err")
         sys.exit(1)
     cli_print("Linked with repository {}".format(url))
 

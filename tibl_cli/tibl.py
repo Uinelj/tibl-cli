@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 # Disable logging because too verbose for now.
-log.disabled = True
+log.disabled = False
 git_logger.disabled = True
 
 def git_error(func):
@@ -60,7 +60,7 @@ class Tibl:
       # raise TiblGitError
     except NoSuchPathError as e:
       log.info("Nothing found at {}".format(name))
-      raise TiblFileError
+      raise TiblFileError("Nothing found at {}".format(name))
 
   def items(self):
     """
@@ -86,19 +86,19 @@ class Tibl:
       # Check if post_type exists
       if post_type not in ["post", "page"]:
           log.error("Invalid post type supplied.")
-          raise TiblFormatError
+          raise TiblFormatError("Invalid post type supplied")
 
       # Check if there's non ascii characters into the post name
       if len(post_name) != len(post_name.encode()):
           log.error(
               "Invalid characters in post name. Please use only ascii."
           )
-          raise TiblFormatError
+          raise TiblFormatError("Invalid characters in post name. Please use only ascii.")
 
       # Check if there's any spaces in the post name
       if " " in post_name:
           log.error("Don't use spaces in post name.")
-          raise TiblFormatError
+          raise TiblFormatError("Don't use spaces in post name.")
 
       # End of check
 
@@ -115,7 +115,7 @@ class Tibl:
       # Check if file exists
       if os.path.isfile(filename):
           log.error("File {} already exists.".format(filename))
-          raise TiblFileError
+          raise TiblFileError("File {} already exists.".format(filename))
 
       # Creating file
       try:
@@ -127,7 +127,7 @@ class Tibl:
           log.error("Could not create post at {}".format(
               os.getcwd() + "/" + filename))
           log.error("Ensure that you are at your site root :)")
-          raise TiblFileError
+          raise TiblFileError("Could not create post. Ensure thatyou are at your site root")
 
       # Updating database
       # TODO: Add at the beginning of the list rather than
@@ -148,7 +148,8 @@ class Tibl:
               log.error("Could not find database at {}".format(
                   os.getcwd() + "/data/database.md"))
               log.error("Ensure that you are at your site root :)")
-              raise TiblFileError
+              raise TiblFileError("Could not find database at {}".format(
+                  os.getcwd() + "/data/database.md"))
       else:
           log.info(
               "Not updating database since you've created a page"
@@ -181,7 +182,7 @@ class Tibl:
       except GitCommandError as e:
         print(e)
         print("Error {} cloning tibl".format(e.status))
-        raise SiteAlreadyExistsError()
+        raise TiblGitError(e, "Error {} cloning tibl".format(e.status))
     
   def link(self, url):
     """
@@ -241,8 +242,8 @@ class Tibl:
         self.repo.git.push('tibl', 'master')
       else:
         log.info("Nothing to push")
-    except GitCommandError:
-      raise TiblGitError
+    except GitCommandError as e:
+      raise TiblGitError(e, "Unable to push changes")
 
   def changes(self):
     """
@@ -251,7 +252,7 @@ class Tibl:
     try:
       print(self.repo.git.status())
     except AttributeError:
-      raise TiblGitError
+      raise TiblGitError("", "Unable to display changes")
 
 def main():
   repo = Tibl("coucou")
