@@ -20,10 +20,8 @@ Commands:
 
 ## Installing
 
-tibl-cli is not available yet in PyPI.
+tibl-cli is  available in PyPI.
 
 ```bash
-git clone https://github.com/Uinelj/tibl-cli
-cd tibl-cli
-pip install --user .
+pip install tibl-cli
 ```
