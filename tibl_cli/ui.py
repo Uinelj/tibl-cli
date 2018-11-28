@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 import click
 import blindspin
@@ -43,15 +44,23 @@ def create(name):
         try:
             Tibl.create(name)
         except FileExistsError as e:
-            cli_print("directory {} already exists".format(name), level="err")
+            cli_print(
+                "directory {} already exists".format(name),
+                level="err",
+            )
             sys.exit(1)
     cli_print("tibl site {} created !".format(name), level="ok")
     sys.exit(0)
 
 
-@cli.command(help="Create a new post/page")
+@cli.command(
+    help="Create a new post/page and attempt to launch your text editor"
+)
 @click.option(
-    "--post_type", prompt="Item type:", default="post", help="can be post or page."
+    "--post_type",
+    prompt="Item type:",
+    default="post",
+    help="can be post or page.",
 )
 @click.option(
     "--post_name",
@@ -75,7 +84,8 @@ def new(post_type, post_name, title):
     """
     tibl = Tibl(".")
     try:
-        tibl.new(post_type, post_name, title)
+        filepath = tibl.new(post_type, post_name, title)
+        print(filepath)
     except TiblFileError:
         cli_print(
             "Unable to create {}, ensure that you are in your site's directory".format(
@@ -88,6 +98,14 @@ def new(post_type, post_name, title):
         cli_print(e.message, level="err")
         sys.exit(1)
     cli_print("Created {}: {}".format(post_type, post_name))
+    try:
+        os.system("{} {}".format(os.environ["EDITOR"], filepath))
+
+    except KeyError as e:
+        cli_print(
+            "Unable to find editor envvar, edit file manually.",
+            level="err",
+        )
 
 
 @cli.command(help="serve your website locally")

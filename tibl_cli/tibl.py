@@ -58,7 +58,9 @@ class Tibl:
 
         # Check if there's non ascii characters into the post name
         if len(post_name) != len(post_name.encode()):
-            log.error("Invalid characters in post name. Please use only ascii.")
+            log.error(
+                "Invalid characters in post name. Please use only ascii."
+            )
             raise TiblFormatError(
                 "Invalid characters in post name. Please use only ascii."
             )
@@ -66,7 +68,9 @@ class Tibl:
         # Check if there's any spaces in the post name
         if " " in post_name:
             log.error("Don't use spaces in post name.")
-            raise TiblFormatError("Don't use spaces in post name.")
+            raise TiblFormatError(
+                "Don't use spaces in post name."
+            )
 
         # End of check
 
@@ -83,7 +87,9 @@ class Tibl:
         # Check if file exists
         if os.path.isfile(filename):
             log.error("File {} already exists.".format(filename))
-            raise TiblFileError("File {} already exists.".format(filename))
+            raise TiblFileError(
+                "File {} already exists.".format(filename)
+            )
 
         # Creating file
         try:
@@ -93,7 +99,9 @@ class Tibl:
         except FileNotFoundError as e:
             # echo_err("Could not create post at {}.".format(os.getcwd())
             log.error(
-                "Could not create post at {}".format(os.getcwd() + "/" + filename)
+                "Could not create post at {}".format(
+                    os.getcwd() + "/" + filename
+                )
             )
             log.error("Ensure that you are at your site root :)")
             raise TiblFileError(
@@ -109,7 +117,9 @@ class Tibl:
                 with open("data/database.md", "a") as f:
                     f.write(
                         "* [{}](t.html?{}={})\n".format(
-                            title, "t" if post_type == "post" else "p", post_name
+                            title,
+                            "t" if post_type == "post" else "p",
+                            post_name,
                         )
                     )
             except FileNotFoundError as e:
@@ -119,7 +129,10 @@ class Tibl:
                     )
                 )
         else:
-            log.info("Not updating database since you've created a page")
+            log.info(
+                "Not updating database since you've created a page"
+            )
+        return filename
 
     def serve(self, port=8080):
         """
@@ -129,8 +142,12 @@ class Tibl:
           :param port: Port to use. Default is 8080
       """
         server_address = ("localhost", port)
-        httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
-        log.info("Serving at http://{}:{}".format(*server_address))
+        httpd = HTTPServer(
+            server_address, SimpleHTTPRequestHandler
+        )
+        log.info(
+            "Serving at http://{}:{}".format(*server_address)
+        )
         httpd.serve_forever()
 
     def create(name):
@@ -143,9 +160,15 @@ class Tibl:
                 raise FileExistsError
 
             try:
-                Repo.clone_from("https://github.com/Uinelj/tibl", name)
-                shutil.rmtree("{}/.git".format(name), ignore_errors=True)
+                Repo.clone_from(
+                    "https://github.com/Uinelj/tibl", name
+                )
+                shutil.rmtree(
+                    "{}/.git".format(name), ignore_errors=True
+                )
             except GitCommandError as e:
                 print(e)
                 print("Error {} cloning tibl".format(e.status))
-                raise TiblGitError(e, "Error {} cloning tibl".format(e.status))
+                raise TiblGitError(
+                    e, "Error {} cloning tibl".format(e.status)
+                )
